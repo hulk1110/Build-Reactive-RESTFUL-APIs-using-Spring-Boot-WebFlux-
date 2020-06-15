@@ -47,7 +47,20 @@ public class EIConsumerController {
 
 		return client.get().uri("/posts")
 				.exchange()
-				.flatMapMany(eiresponse -> eiresponse.bodyToFlux(User.class))
+				.flatMapMany((clientResponse -> {
+
+													if (clientResponse.statusCode().is5xxServerError()) {
+										
+														return clientResponse.bodyToMono(String.class)
+										
+																.flatMap(errMsg -> {
+																	throw new RuntimeException(errMsg);
+																});
+														} else {
+															return clientResponse.bodyToFlux(User.class);
+														}
+												}))
+			
 				.log("Items in EI");
 	}
 	

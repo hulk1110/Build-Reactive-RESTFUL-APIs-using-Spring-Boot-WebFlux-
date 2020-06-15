@@ -22,54 +22,48 @@ import reactor.core.publisher.Mono;
 @RestController
 public class FisConsumerController {
 
-	
-
 	@Qualifier("fisapp")
 	@Autowired
 	WebClient client;
 
-
-	
 	@GetMapping("/books")
 	public Flux<Book> getMeUserExchange() {
 
-		return client.get().uri("/Books")
-				.exchange()
-				.flatMapMany(eiresponse -> eiresponse.bodyToFlux(Book.class))
-				.log("Items in Fis");
+		return client.get().uri("/Books").
+				retrieve().
+				onStatus(HttpStatus::is5xxServerError, serverError -> {
+					Mono<String> errorMono = serverError.bodyToMono(String.class);
+					return errorMono.flatMap((errMsg) -> {
+						
+						throw new RuntimeException(errMsg);
+					});
+				       })
+
+				.onStatus(HttpStatus::is4xxClientError, clientError -> {
+					Mono<String> errorMono = clientError.bodyToMono(String.class);
+					return errorMono.flatMap((errMsg) -> {
+						// log.error("The error message is: " +errMsg);
+						throw new RuntimeException(errMsg);
+					});
+				})
+
+				.bodyToFlux(Book.class).log("Items in Fis");
 	}
-	
-	
+
 	@GetMapping("/Books/{id}")
 	public Mono<Book> getMeUserBasedOnId(@PathVariable int id) {
-		
-		
 
-		return client.get().uri("/Books/" + id)
-				.retrieve()
-				.bodyToMono(Book.class)
-				.log("Items in EI");
+		return client.get().uri("/Books/" + id).retrieve().bodyToMono(Book.class).log("Items in EI");
 	}
-	
-	
+
 	@PostMapping("/user-book")
 	public Mono<Book> createBook(@RequestBody Book book) {
-		return client.post()
-				.uri("/Books")
-				.body(Mono.just(book),Book.class)
-				.retrieve()
-				.bodyToMono(Book.class);
+		return client.post().uri("/Books").body(Mono.just(book), Book.class).retrieve().bodyToMono(Book.class);
 	}
 
-	
 	@PutMapping("Books/update/{id}")
-	public Mono<Book> update(@PathVariable int id,@RequestBody Book book) 
-	{
-	    return client.put()
-	        .uri("/Books/" + id)
-	        .body(Mono.just(book), Book.class)
-	        .retrieve()
-	        .bodyToMono(Book.class);
+	public Mono<Book> update(@PathVariable int id, @RequestBody Book book) {
+		return client.put().uri("/Books/" + id).body(Mono.just(book), Book.class).retrieve().bodyToMono(Book.class);
 	}
-	
+
 }
