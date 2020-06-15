@@ -1,6 +1,7 @@
 package com.deposit.crs.eiconsumer.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.deposit.crs.eiconsumer.dto.Book;
 import com.deposit.crs.eiconsumer.dto.User;
 import com.deposit.crs.eiconsumer.exception.MyCustomServerException;
 import com.deposit.crs.eiconsumer.exeption.MyCustomClientException;
@@ -20,6 +22,7 @@ import reactor.core.publisher.Mono;
 @RestController
 public class EIConsumerController {
 
+	@Qualifier("eiapp")
 	@Autowired
 	WebClient client;
 
@@ -71,11 +74,11 @@ public class EIConsumerController {
 	}
 
 	
-	@PutMapping("user-update")
-	public Mono<User> update(User e) 
+	@PutMapping("users/update")
+	public Mono<User> update(@PathVariable int id,@RequestBody User e) 
 	{
 	    return client.put()
-	        .uri("/posts/1" + e.getId())
+	        .uri("/posts/" + e.getId())
 	        .body(Mono.just(e), User.class)
 	        .retrieve()
 	        .bodyToMono(User.class);

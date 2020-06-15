@@ -18,30 +18,41 @@ import reactor.netty.http.client.HttpClient;
 @Configuration
 public class WebClientConfig {
 
+	private ClientHttpConnector connector() {
+		// HttpClient class to set timeout periods for connection timeout, read timeout
+		// and write timeouts.
+
+		HttpClient httpClient = HttpClient.create().tcpConfiguration(
+				client -> client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000).doOnConnected(conn -> conn
+						.addHandlerLast(new ReadTimeoutHandler(10)).addHandlerLast(new WriteTimeoutHandler(10))));
+
+		ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
+
+		return connector;
+	}
+
+	@Bean(name = "eiapp")
+	@Description("ei web client")
+	public WebClient eiClient(@Value("${ei.service.url}") String serviceUrl) {
 	
-	@Bean
-    @Description("customer web client")
-    public WebClient restClient(@Value("${ei.service.url}") String serviceUrl){
-		// HttpClient class to set timeout periods for connection timeout, read timeout and write timeouts.
-		
-		HttpClient httpClient = HttpClient.create()
-				.tcpConfiguration(client ->
-				        client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
-				        .doOnConnected(conn -> conn
-				                .addHandlerLast(new ReadTimeoutHandler(10))
-				                .addHandlerLast(new WriteTimeoutHandler(10))));
-		
-		ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);     
+		return WebClient.builder().baseUrl(serviceUrl).clientConnector(connector())
+				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
+	}
+	
+	
+	
+	@Bean(name = "fisapp")
+	@Description("fis web client")
+	public WebClient fisClient(@Value("${fis.service.url}") String serviceUrl) {
+	
+		return WebClient.builder().baseUrl(serviceUrl).clientConnector(connector())
+				.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
+	}
+	
+	
+	
+	
+	
 
 
-
-        return WebClient.builder()
-                .baseUrl(serviceUrl)
-                .baseUrl("https://jsonplaceholder.typicode.com")
-                .clientConnector(connector)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build() ;
-    }
 }
-
-
